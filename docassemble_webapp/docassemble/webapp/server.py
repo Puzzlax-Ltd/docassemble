@@ -27496,6 +27496,33 @@ def api_interview():
       #<script async src="https://www.googletagmanager.com/gtag/js?id=""" + ga_id + """"></script>
     return jsonify(output)
 
+
+# --- Puzzlax additions
+@app.route('/api/documents', methods=['GET'])
+@cross_origin(origins='*', methods=['GET'], automatic_options=True)
+def list_user_documents():
+    # TODO: ensure that specific API key only lists files owned by the associated user
+    if not api_verify(request, roles=['admin']):
+        return jsonify_with_status("Access denied.", 403)
+
+    # reminder: session key/id is called just "key" in database columns
+
+    # debug
+    logmessage('endpoint called')
+
+    user_info = get_user_info()
+
+    # TODO: consider using ORM
+    records = db.session.execute('''
+        select uploads.indexno, uploads.filename from uploads join userdictkeys on uploads.key = userdictkeys.key where user_id = :user_id;
+    ''', {'user_id': user_info['id']})
+
+    result_dict = [dict(r) for r in records.fetchall()]
+
+    logmessage(str(result_dict))
+
+    return jsonify(result_dict)
+
 @app.route('/me', methods=['GET'])
 def whoami():
     if current_user.is_authenticated:
